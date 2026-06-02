@@ -205,28 +205,29 @@ class CircuitSimulator:
     
     def _add_component_to_spice(self, spice_circuit: PySpiceCircuit, component: Any) -> None:
         """Add a component to the PySpice circuit."""
+        nodes = ['0' if n.lower() == 'gnd' else n for n in component.nodes]
         if component.component_type == "resistor":
-            spice_circuit.R(component.name, *component.nodes, component.value@u_Ω)
+            spice_circuit.R(component.name, *nodes, component.value@u_Ω)
         elif component.component_type == "capacitor":
-            spice_circuit.C(component.name, *component.nodes, component.value@u_F)
+            spice_circuit.C(component.name, *nodes, component.value@u_F)
         elif component.component_type == "inductor":
-            spice_circuit.L(component.name, *component.nodes, component.value@u_H)
+            spice_circuit.L(component.name, *nodes, component.value@u_H)
         elif component.component_type == "voltage_source":
             if component.source_type == "DC":
-                spice_circuit.V(component.name, *component.nodes, component.value@u_V)
+                spice_circuit.V(component.name, *nodes, component.value@u_V)
             elif component.source_type == "AC":
-                spice_circuit.V(component.name, *component.nodes, component.value@u_V)
+                spice_circuit.V(component.name, *nodes, f"DC 0V AC {float(component.value)}V")
         elif component.component_type == "current_source":
             if component.source_type == "DC":
-                spice_circuit.I(component.name, *component.nodes, component.value@u_A)
+                spice_circuit.I(component.name, *nodes, component.value@u_A)
             elif component.source_type == "AC":
-                spice_circuit.I(component.name, *component.nodes, component.value@u_A)
+                spice_circuit.I(component.name, *nodes, f"DC 0A AC {float(component.value)}A")
         elif component.component_type == "diode":
             # Use default diode model with explicit model specification
-            spice_circuit.D(component.name, component.nodes[0], component.nodes[1], model='DefaultDiode')
+            spice_circuit.D(component.name, nodes[0], component.nodes[1], model='DefaultDiode')
         elif component.component_type == "transistor":
             model = component.model if component.model else component.transistor_type
-            spice_circuit.Q(component.name, *component.nodes, model)
+            spice_circuit.Q(component.name, *nodes, model)
     
     def _process_dc_results(self, results: Any, output_nodes: List[str]) -> Dict[str, Any]:
         """Process DC operating point analysis results."""
@@ -286,8 +287,16 @@ class CircuitSimulator:
                     node_data = getattr(results, node)
                     if hasattr(node_data, 'magnitude'):
                         data[f"{node}_magnitude"] = [float(m) for m in node_data.magnitude]
+                    else:
+                        magnitude = np.abs(node_data)
+                        data[f"{node}_magnitude"] = [float(m) for m in magnitude]
                     if hasattr(node_data, 'phase'):
                         data[f"{node}_phase"] = [float(p) for p in node_data.phase]
+                    else:
+                        phase_radians = np.angle(node_data)
+                        #phase_degrees = np.degrees(node_data)
+                        data[f"{node}_phase"] = [float(p) for p in phase_radians]
+                        #data[f"{node}_phase_degrees"] = [float(p) for p in phase_degrees]
                 else:
                     raise CircuitSimulationError(
                         f"Node '{node}' not found in AC analysis results",

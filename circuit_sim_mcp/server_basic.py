@@ -694,7 +694,7 @@ Each example includes working component values and expected simulation results."
                     "rc_lowpass": {
                         "name": "rc_lowpass_example",
                         "components": [
-                            {"name": "V1", "component_type": "voltage_source", "nodes": ["input", "gnd"], "voltage": 1.0, "source_type": "DC"},
+                            {"name": "V1", "component_type": "voltage_source", "nodes": ["input", "gnd"], "voltage": 1.0, "source_type": "AC"},
                             {"name": "R1", "component_type": "resistor", "nodes": ["input", "output"], "resistance": 1000.0},
                             {"name": "C1", "component_type": "capacitor", "nodes": ["output", "gnd"], "capacitance": 1e-6}
                         ],
